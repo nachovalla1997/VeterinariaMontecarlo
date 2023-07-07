@@ -29,12 +29,15 @@ void simulate_client_arrivals(struct tm start_time, int start_client_id, double 
 
     for (int day = 0; day < days; day++) {
         if(day != 0) {
+        printf("End of day %d\n", day + 1);
             start_time.tm_mday++;
             if (start_time.tm_mday > 31) {
+                printf("End of month %d\n", start_time.tm_mon + 1);
                 start_time.tm_mday = 1;
                 start_time.tm_mon++;
                 if (start_time.tm_mon > 11) {
-                    start_time.tm_mon = 0;
+                    printf("End of year %d\n", start_time.tm_year + 1);
+                    start_time.tm_mon = 1;
                     start_time.tm_year++;
                 }
             }
