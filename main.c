@@ -34,44 +34,63 @@ struct tm increment_day(struct tm time) {
     return time;
 }
 
+int calculate_arrivals(double clients_per_hour) {
+    double lambda = clients_per_hour;
+    int arrivals = 0;
+    double u = (double) rand() / RAND_MAX;
+    double prob = poisson(lambda, arrivals);
+
+    while (u >= prob) {
+        arrivals++;
+        prob += poisson(lambda, arrivals);
+    }
+
+    return arrivals;
+}
+
+int calculate_minutes(int arrivals) {
+    double lambda_minutes = 60.0 / arrivals;
+    int minutes = 0;
+    double u_minutes = (double) rand() / RAND_MAX;
+    double prob_minutes = poisson(lambda_minutes, minutes);
+
+    while (u_minutes >= prob_minutes) {
+        minutes++;
+        prob_minutes += poisson(lambda_minutes, minutes);
+    }
+
+    return minutes;
+}
+
+struct tm manage_time_overflow(struct tm start_time) {
+    while (start_time.tm_min >= 60) {
+        start_time.tm_min -= 60;
+        start_time.tm_hour++;
+    }
+
+    return start_time;
+}
+
+void process_client(struct tm start_time, int* client_id) {
+    char date_time[19];
+    strftime(date_time, 19, "%d/%m/%y %H:%M:%S", &start_time);
+    printf("Client ID: %d | Date & Time: %s\n", (*client_id)++, date_time);
+}
+
 void simulate_client_arrivals_per_day(struct tm start_time, int* client_id, double clients_per_hour) {
     for (int hour = 0; hour < WORKING_HOURS; hour++) {
         start_time.tm_hour = START_HOUR + hour;
-        double lambda = clients_per_hour;
-        int arrivals = 0;
-        double u = (double) rand() / RAND_MAX;
-        double prob = poisson(lambda, arrivals);
-
-        while (u >= prob) {
-            arrivals++;
-            prob += poisson(lambda, arrivals);
-        }
+        int arrivals = calculate_arrivals(clients_per_hour);
 
         for (int client = 0; client < arrivals; client++) {
-            double lambda_minutes = 60.0 / arrivals;
-            int minutes = 0;
-            double u_minutes = (double) rand() / RAND_MAX;
-            double prob_minutes = poisson(lambda_minutes, minutes);
-
-            while (u_minutes >= prob_minutes) {
-                minutes++;
-                prob_minutes += poisson(lambda_minutes, minutes);
-            }
-
+            int minutes = calculate_minutes(arrivals);
             start_time.tm_min += minutes;
-
-            // Manage hours overflow
-            while (start_time.tm_min >= 60) {
-                start_time.tm_min -= 60;
-                start_time.tm_hour++;
-            }
-
-            char date_time[19];
-            strftime(date_time, 19, "%d/%m/%y %H:%M:%S", &start_time);
-            printf("Client ID: %d | Date & Time: %s\n", (*client_id)++, date_time);
+            start_time = manage_time_overflow(start_time);
+            process_client(start_time, client_id);
         }
     }
 }
+
 
 void simulate_client_arrivals(int start_client_id, double clients_per_hour, int days) {
     srand(time(NULL));  // Initialize random number generator
