@@ -48,19 +48,18 @@ int calculate_arrivals(double clients_per_hour) {
     return arrivals;
 }
 
-int calculate_minutes(int arrivals) {
-    double lambda_minutes = 60.0 / arrivals;
-    int minutes = 0;
-    double u_minutes = (double) rand() / RAND_MAX;
-    double prob_minutes = poisson(lambda_minutes, minutes);
+int calculate_minutes(int arrivals, int client) {
+    int interval = 60 / arrivals; // Calculate the interval length
 
-    while (u_minutes >= prob_minutes) {
-        minutes++;
-        prob_minutes += poisson(lambda_minutes, minutes);
-    }
+    // Calculate the start and end minutes for the current client
+    int start_minute = interval * client;
+    int end_minute = start_minute + interval - 1;
 
-    return minutes;
+    // Generate a random number within the specified range
+    return rand() % (end_minute - start_minute + 1) + start_minute;
 }
+
+
 
 struct tm manage_time_overflow(struct tm start_time) {
     while (start_time.tm_min >= 60) {
@@ -80,12 +79,12 @@ void process_client(struct tm start_time, int* client_id) {
 void simulate_client_arrivals_per_day(struct tm start_time, int* client_id, double clients_per_hour) {
     for (int hour = 0; hour < WORKING_HOURS; hour++) {
         start_time.tm_hour = START_HOUR + hour;
+        start_time.tm_min = START_MINUTE;
         int arrivals = calculate_arrivals(clients_per_hour);
-
+        printf("Arrivals: %d\n", arrivals);
         for (int client = 0; client < arrivals; client++) {
-            int minutes = calculate_minutes(arrivals);
-            start_time.tm_min += minutes;
-            start_time = manage_time_overflow(start_time);
+            int minutes = calculate_minutes(arrivals, client);
+            start_time.tm_min = minutes;
             process_client(start_time, client_id);
         }
     }
